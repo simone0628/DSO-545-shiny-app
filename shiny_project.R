@@ -12,13 +12,14 @@ library(shinycssloaders)
 library(geosphere)
 library(DT)
 library(data.table)
+library(shinyjs)
 
 DEBUG = F
 ## For testing to quickly get data
 if(DEBUG){
-    start_date = "21/05/2019"
+    start_date = "27/05/2019"
     return_date = "01/06/2019"
-    input = data.frame(airport_start = "SCW")
+    input = data.frame(airport_start = "LAX")
     url = fromJSON(gsub("(\\d)\\/","\\1%2F",sprintf(
         "https://api.skypicker.com/flights?sort=price&v=3&asc=1&fly_from=%s&curr=USD&adults=1&date_from=%s&date_to=%s&return_from=%s&return_to=%s&one_for_city=0&one_per_date=0&max_stopovers=5&limit=300",
         input$airport_start,start_date,start_date,return_date,return_date)))
@@ -31,14 +32,14 @@ if(DEBUG){
 # Get data about airports
 # airport_endpoint = fromJSON("https://prod.greatescape.co/api/flights/airports")
 airport_info = read_csv("~/Dropbox/Spring 2019/DSO 545/shiny_app/airport_info.csv")
-# Map starts centered around LA maybe it should be in the middle of the US?
-USmap = leaflet() %>% setView(lng=-118.243683,lat=34.052235,5) %>% addTiles() 
+
 
 
 # We should probably make this layout look better
 ui <- shinyUI(
     
     fluidPage(
+        useShinyjs(),
         tags$head(
             tags$style(HTML("@import url('https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css');"))
         ),
@@ -52,10 +53,10 @@ ui <- shinyUI(
                 dateInput("departureDate", "Select Departure Date:"),
                 dateInput("returnDate", "Select Return Date:"),
                 actionButton("goButton1", "Submit Query")),
-            mainPanel(
-                leafletOutput("mymap"),
-                dataTableOutput("result")
-            )
+                mainPanel(
+                    shinycssloaders::withSpinner(leafletOutput("mymap")),
+                    dataTableOutput("result")
+                )
         )
     )
 )
@@ -111,17 +112,17 @@ airport_start,start_date,start_date,return_date,return_date)))
         dat %...>% result_val()
      
     
-    output$mymap = renderLeaflet({
+    output$mymap = req(renderLeaflet({
         # This means that it won't try to do anything until it gets the result_val
         flight_info = req(result_val())
-        temp_map = USmap
+        
         airport_start = airport_info[airport_info$idname == input$airport_start,]$id
         
         # This is how we bin the flights by price. Since there can be several flights to the same location we just average those prices
         getColor <- function(flight_info) {
             flight = flight_info %>% group_by(flyTo) %>% summarize(price=mean(price)) 
             quants = flight %>% do(data.frame(t(quantile(.$price, probs = c(0.25,0.5,0.75)))))
-            sapply(flight$price, function(price) {
+            flight$color = sapply(flight$price, function(price) {
                 if(price <= quants$X25.) {
                     "green"
                 } else if(price > quants$X25. & price <= quants$X75.) {
@@ -129,14 +130,17 @@ airport_start,start_date,start_date,return_date,return_date)))
                 } else if(price > quants$X75.) {
                     "red"
                 } })
+            return(flight)
         }
         
+        
+        flight_color = getColor(flight_info)
         # Just takes the output of our color function and returns a list of icons
         icons <- awesomeIcons(
             icon = 'ios-close',
             iconColor = 'black',
             library = 'ion',
-            markerColor = getColor(flight_info)
+            markerColor = "green"
         )
         
         # Get unique destinations
@@ -146,15 +150,18 @@ airport_start,start_date,start_date,return_date,return_date)))
         lat_start = airport_info[airport_info$id == airport_start,]$lat
         lon_start = airport_info[airport_info$id == airport_start,]$lon
         
+        # Create the map here and we will center it at the lat and lon of the starting coordinates
+        temp_map = leaflet() %>% setView(lng=lon_start,lat=lat_start,5) %>% addTiles() 
+        
         lat_end = sapply(destinations,function(x){ airport_info[airport_info$id == x,]$lat})
         lon_end = sapply(destinations,function(x){ airport_info[airport_info$id == x,]$lon})
         
         # This is a super ugly way to get the routes from each row. If you want to come up with a better way, look at the flight_info dataframe
         # You can just run the code in the promise wrapper and then do flight_info = url$data
+        marker_icon = icons
         for(i in 1:length(destinations)){
             # Marker and line color
-            marker_icon = icons
-            marker_icon$markerColor = icons$markerColor[i]
+            marker_icon$markerColor = flight_color[flight_color$flyTo == destinations[i],]$color
             
             # Add transfers
             each_flight = flight_info %>% filter(flyTo==destinations[i])
@@ -194,7 +201,7 @@ airport_start,start_date,start_date,return_date,return_date)))
         }
         # Render the map
         temp_map
-    })
+    }))
     })
     
     # We want to observe when people click on the markers and display a table with the different flights available for that particular location
@@ -313,7 +320,8 @@ airport_start,start_date,start_date,return_date,return_date)))
                               ")      ) 
         }, server = FALSE)
         })
-    
+    hide("loading_page")
+    show("main_content")  
     
 }  
 
