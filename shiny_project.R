@@ -39,34 +39,70 @@ airline_carriers = na.omit(airline_carriers)
 
 # We should probably make this layout look better
 ui <- shinyUI(
-    
     fluidPage(
-        useShinyjs(),
-        tags$head(
-            tags$style(HTML("@import url('https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css');"))
-        ),
-        titlePanel("Wanna Get Away?"),
-        sidebarLayout(
-            sidebarPanel(
-                helpText("Finals stressing you out? Want to get away from all of your responsibilities? We can help!"),
-                selectInput("airport_start", "Origin Airport", selected = 'LAX (Los Angeles International)',
-                            choices = sort(unique(airport_info$idname))),
-                selectInput("selectinputid", "Select Holiday:",choices = NULL),
-                dateInput("departureDate", "Select Departure Date:"),
-                dateInput("returnDate", "Select Return Date:"),
-                actionButton("goButton1", "Submit Query")),
-                mainPanel(
-                    shinyjs::hidden(
-                    div(id = "leaflet_output",
-                    shinycssloaders::withSpinner(leafletOutput("mymap"))
-                    )),
-                    # shinycssloaders::withSpinner(leafletOutput("mymap")),
-                    dataTableOutput("result"),
-                    plotOutput("secondplot")
-                )
-        )
-    )
+    useShinyjs(),
+    tags$head(
+        tags$style(HTML("@import url('https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css');"))
+    ),
+    navbarPage("DSO 545 Final Project",
+                   tabPanel("Wanna Get Away?",
+                         sidebarPanel(   
+                            selectInput("airport_start", "Origin Airport", selected = 'LAX (Los Angeles International)',
+                                        choices = sort(unique(airport_info$idname))),
+                            selectInput("selectinputid", "Select Holiday:",choices = NULL),
+                            dateInput("departureDate", "Select Departure Date:"),
+                            dateInput("returnDate", "Select Return Date:"),
+                            actionButton("goButton1", "Submit Query")),
+               mainPanel(
+                   shinyjs::hidden(
+                       div(id = "leaflet_output",
+                           shinycssloaders::withSpinner(leafletOutput("mymap"))
+                       )),
+                   # shinycssloaders::withSpinner(leafletOutput("mymap")),
+                   dataTableOutput("result")
+                   
+               )
+                   ),
+                   tabPanel("Second tab name",
+                            sidebarPanel(),
+                            mainPanel(
+                                plotOutput("secondplot")
+                            )
+                   )
 )
+)
+)
+
+
+# ui <- shinyUI(
+#     
+#     fluidPage(
+#         useShinyjs(),
+#         tags$head(
+#             tags$style(HTML("@import url('https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css');"))
+#         ),
+#         titlePanel("Wanna Get Away?"),
+#         sidebarLayout(
+#             sidebarPanel(
+#                 helpText("Finals stressing you out? Want to get away from all of your responsibilities? We can help!"),
+#                 selectInput("airport_start", "Origin Airport", selected = 'LAX (Los Angeles International)',
+#                             choices = sort(unique(airport_info$idname))),
+#                 selectInput("selectinputid", "Select Holiday:",choices = NULL),
+#                 dateInput("departureDate", "Select Departure Date:"),
+#                 dateInput("returnDate", "Select Return Date:"),
+#                 actionButton("goButton1", "Submit Query")),
+#                 mainPanel(
+#                     shinyjs::hidden(
+#                     div(id = "leaflet_output",
+#                     shinycssloaders::withSpinner(leafletOutput("mymap"))
+#                     )),
+#                     # shinycssloaders::withSpinner(leafletOutput("mymap")),
+#                     dataTableOutput("result"),
+#                     plotOutput("secondplot")
+#                 )
+#         )
+#     )
+# )
 
 server <- function(input, output,session) {
     
