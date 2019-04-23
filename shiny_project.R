@@ -14,6 +14,8 @@ library(geosphere)
 library(DT)
 library(data.table)
 library(shinyjs)
+library(ggplot2)
+library(future)
 
 DEBUG = F
 ## For testing to quickly get data
@@ -47,22 +49,30 @@ ui <- shinyUI(
     ),
     navbarPage("DSO 545 Final Project",
                    tabPanel("Wanna Get Away?",
-                         sidebarPanel(   
+                            titlePanel("Wanna Get Away?"),
+                         sidebarPanel(
+                             helpText("Finals stressing you out? Want to get away from all of your responsibilities? We can help!"),
                             selectInput("airport_start", "Origin Airport", selected = 'LAX (Los Angeles International)',
                                         choices = sort(unique(airport_info$idname))),
                             selectInput("selectinputid", "Select Holiday:",choices = NULL),
                             dateInput("departureDate", "Select Departure Date:"),
                             dateInput("returnDate", "Select Return Date:"),
-                            actionButton("goButton1", "Submit Query")),
+                            actionButton("goButton1", "Submit Query")
+                            ),
                mainPanel(
                    shinyjs::hidden(
                        div(id = "leaflet_output",
                            # shinycssloaders::withSpinner(leafletOutput("mymap"))
                            withLoader(leafletOutput("mymap"),type="html",loader="pacman")
                        )),
-                   # shinycssloaders::withSpinner(leafletOutput("mymap")),
-                   dataTableOutput("result")
                    
+                   # shinycssloaders::withSpinner(leafletOutput("mymap")),
+                   
+                   shinyjs::hidden(
+                       div(id= "priceplot_output",
+                           withLoader(dataTableOutput("result"),type="html", loader ="dnaspin"),
+                   plotOutput("priceplot")
+                   ))
                )
                    ),
                    tabPanel("Second tab name",
@@ -108,12 +118,21 @@ ui <- shinyUI(
 
 server <- function(input, output,session) {
     
+    # Get all of the days in 2019
+    getDays <- function(year) {      
+        seq(as.Date(paste(year, '-01-01', sep='')), 
+            as.Date(paste(year, '-12-31', sep='')), 
+            by = '+1 day');
+    }
+    days_2019 = format(getDays(2019), "%d/%m/%Y")
+    
+    
     output$secondplot = renderPlot({
         # Put plot code here so that it returns the ggplot2 object
     })
     
-    shinyjs::onclick("goButton1",
-                     shinyjs::show(id = "leaflet_output",anim = T))
+    shinyjs::onclick("goButton1",{
+                     shinyjs::show(id = "leaflet_output",anim = T)})
     
     
     observeEvent(D1(),{
@@ -145,9 +164,11 @@ server <- function(input, output,session) {
     # })
 
     result_val <- reactiveVal()
+    price_plot_val <- reactiveVal()
     observeEvent(input$goButton1,{
         shinyjs::show("mymap")
         result_val(NULL)
+        price_plot_val(NULL)
         start_date = format(as.Date(input$departureDate),'%d/%m/%Y')
         return_date = format(as.Date(input$returnDate),'%d/%m/%Y')
         airport_start = airport_info[airport_info$idname == input$airport_start,]$id
@@ -259,6 +280,7 @@ airport_start,start_date,start_date,return_date,return_date)))
     
     # We want to observe when people click on the markers and display a table with the different flights available for that particular location
     observeEvent(input$mymap_marker_click, { 
+        shinyjs::show(id = "priceplot_output", anim = T)
         p <- input$mymap_marker_click$id
         flight_info = result_val()
         flight_info = flight_info %>% select(-one_of(c("baglimit","bags_price","duration","conversion","countryTo", "countryFrom")))
@@ -281,6 +303,8 @@ airport_start,start_date,start_date,return_date,return_date)))
                 select(`Departing City` = cityFrom, `Departing Airport Code` = flyFrom, `Departure Time` = dTimeUTC , `Arrival City`= cityTo,
                        `Arrival Airport Code`= flyTo, `Arrival Time` = aTimeUTC , `Return Flight?`= return)
         }
+        
+        
         # Change the column names
         output$result <- renderDataTable({
             DT::datatable(
@@ -389,6 +413,33 @@ console.log(childColumns)
                               })
                               ")      ) 
         }, server = FALSE)
+
+        output$priceplot <- renderPlot({
+            
+        p <- input$mymap_marker_click$id
+        # We want to get the window of data for the clicked on marker
+        
+        airport_start = airport_info[airport_info$idname == input$airport_start,]$id
+        start_date = format(as.Date(input$departureDate),'%d/%m/%Y')
+        return_date = format(as.Date(input$returnDate),'%d/%m/%Y')
+        
+        
+        flight_info_flexible = fromJSON(gsub("(\\d)\\/","\\1%2F",sprintf(
+            "https://api.skypicker.com/flights?sort=price&v=3&asc=1&fly_from=%s&curr=USD&adults=1&date_from=%s&date_to=%s&return_from=%s&return_to=%s&one_for_city=0&one_per_date=0&max_stopovers=5&limit=1500&fly_to=%s",
+            airport_start,days_2019[max(which(days_2019 == start_date)-3,which(days_2019 == format(Sys.Date(), "%d/%m/%Y")))],
+            days_2019[which(days_2019 == start_date)+3],days_2019[max(which(days_2019 == return_date)-3, which(days_2019 == format(Sys.Date(), "%d/%m/%Y")))],
+            days_2019[which(days_2019 == return_date)+3],p)))
+        flight_flexible = flight_info_flexible$data
+        # flight_info_flexible = flight_info_flexible %>% select(-one_of(c("baglimit","bags_price","duration","conversion","countryTo", "countryFrom")))
+        
+        flight_flexible = flight_flexible %>% mutate(date = format(as_datetime(dTime,tz="America/Los_Angeles"), "%Y-%m-%d")) %>% group_by(date) %>% summarize(price = mean(price))
+        
+        prices_plot = ggplot(data=flight_flexible, aes(x=date, y=price, fill = price)) +
+            geom_bar(stat="identity") + scale_fill_gradient(low = "#dbe9b7", high = "#616f39")
+        print(prices_plot)
+        })
+        
+        
         })
 
     
