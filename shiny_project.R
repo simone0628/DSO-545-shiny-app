@@ -117,7 +117,7 @@ airport_start,start_date,start_date,return_date,return_date)))
     output$mymap = req(renderLeaflet({
         # This means that it won't try to do anything until it gets the result_val
         flight_info = req(result_val())
-        
+        flight_info = flight_info %>% select(-one_of(c("baglimit","bags_price","duration","conversion","countryTo", "countryFrom")))
         airport_start = airport_info[airport_info$idname == input$airport_start,]$id
         
         # This is how we bin the flights by price. Since there can be several flights to the same location we just average those prices
@@ -210,11 +210,14 @@ airport_start,start_date,start_date,return_date,return_date)))
     observeEvent(input$mymap_marker_click, { 
         p <- input$mymap_marker_click$id
         flight_info = result_val()
+        flight_info = flight_info %>% select(-one_of(c("baglimit","bags_price","duration","conversion","countryTo", "countryFrom")))
+        # Spread airlines column, change values to the names and then gather back
+        flight_data = flight_info %>% filter(flyTo == p) %>% select(flyTo,dTime,aTime,airlines,fly_duration,price,route) %>% split(.$airlines)
+        
         flight_data = flight_info %>% filter(flyTo == p) %>% select(flyTo,dTime,aTime,airlines,fly_duration,price,route) %>% 
             distinct(flyTo,dTime,aTime,.keep_all = T) %>%
             mutate(dTime = as.character(as_datetime(dTime,tz="America/Los_Angeles")), aTime = as.character(as_datetime(aTime,tz="America/Los_Angeles")))%>%
             select(Destination=flyTo,`Departure Time`= dTime,`Arrival Time` = aTime, `Airlines` = airlines, `Flight Duration` = fly_duration, `Price`=price, route = route)
-        #     
         
         for(i in 1:nrow(flight_data)){
             flight_data$route[[i]] = flight_data$route[[i]] %>% select(cityFrom,flyFrom,cityTo,flyTo,aTimeUTC,dTimeUTC,operating_carrier,return) %>%
@@ -222,8 +225,6 @@ airport_start,start_date,start_date,return_date,return_date)))
                 select(`Departing City` = cityFrom, `Departing Airport Code` = flyFrom, `Departure Time` = dTimeUTC , `Arrival City`= cityTo,
                        `Arrival Airport Code`= flyTo, `Arrival Time` = aTimeUTC ,`Carrier` = operating_carrier, `Return Flight?`= return)
         }
-        # flight_data$id = 1:nrow(flight_data)
-        # flight_data = flight_data %>% select(id, `Departing City`, `Departure Time`, `Arrival Time`, `Airlines`, route)
         # Change the column names
         output$result <- renderDataTable({
             DT::datatable(
