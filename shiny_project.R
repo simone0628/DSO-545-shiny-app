@@ -35,7 +35,7 @@ airport_info = read_csv("~/Dropbox/Spring 2019/DSO 545/shiny_app/airport_info.cs
 
 # Get airline company data
 airline_carriers = read_csv("~/Dropbox/Spring 2019/DSO 545/shiny_app/airline_carriers.csv")
-
+airline_carriers = na.omit(airline_carriers)
 
 # We should probably make this layout look better
 ui <- shinyUI(
@@ -56,14 +56,22 @@ ui <- shinyUI(
                 dateInput("returnDate", "Select Return Date:"),
                 actionButton("goButton1", "Submit Query")),
                 mainPanel(
-                    shinycssloaders::withSpinner(leafletOutput("mymap")),
+                    shinyjs::hidden(
+                    div(id = "leaflet_output",
+                    shinycssloaders::withSpinner(leafletOutput("mymap"))
+                    )),
+                    # shinycssloaders::withSpinner(leafletOutput("mymap")),
                     dataTableOutput("result")
+                    ### ADD YOUR OUTPUT HERE ###
                 )
         )
     )
 )
 
 server <- function(input, output,session) {
+    
+    shinyjs::onclick("goButton1",
+                     shinyjs::show(id = "leaflet_output",anim = T))
     
     
     observeEvent(D1(),{
@@ -96,6 +104,7 @@ server <- function(input, output,session) {
 
     result_val <- reactiveVal()
     observeEvent(input$goButton1,{
+        shinyjs::show("mymap")
         result_val(NULL)
         start_date = format(as.Date(input$departureDate),'%d/%m/%Y')
         return_date = format(as.Date(input$returnDate),'%d/%m/%Y')
@@ -212,9 +221,14 @@ airport_start,start_date,start_date,return_date,return_date)))
         flight_info = result_val()
         flight_info = flight_info %>% select(-one_of(c("baglimit","bags_price","duration","conversion","countryTo", "countryFrom")))
         # Spread airlines column, change values to the names and then gather back
-        flight_data = flight_info %>% filter(flyTo == p) %>% select(flyTo,dTime,aTime,airlines,fly_duration,price,route) %>% split(.$airlines)
+        flight_data = flight_info %>% filter(flyTo == p) %>% select(flyTo,dTime,aTime,airlines,fly_duration,price,route)
+        for(i in 1:nrow(flight_data)){
+            airline_vals = unlist(flight_data[i,]$airlines)
+            airline_vals = airline_carriers$name[airline_carriers$id %in% airline_vals]
+            flight_data[i,]$airlines = list(airline_vals)
+        }
         
-        flight_data = flight_info %>% filter(flyTo == p) %>% select(flyTo,dTime,aTime,airlines,fly_duration,price,route) %>% 
+        flight_data = flight_data %>% 
             distinct(flyTo,dTime,aTime,.keep_all = T) %>%
             mutate(dTime = as.character(as_datetime(dTime,tz="America/Los_Angeles")), aTime = as.character(as_datetime(aTime,tz="America/Los_Angeles")))%>%
             select(Destination=flyTo,`Departure Time`= dTime,`Arrival Time` = aTime, `Airlines` = airlines, `Flight Duration` = fly_duration, `Price`=price, route = route)
@@ -223,7 +237,7 @@ airport_start,start_date,start_date,return_date,return_date)))
             flight_data$route[[i]] = flight_data$route[[i]] %>% select(cityFrom,flyFrom,cityTo,flyTo,aTimeUTC,dTimeUTC,operating_carrier,return) %>%
                 mutate(dTimeUTC = as.character(as_datetime(dTimeUTC,tz="America/Los_Angeles")), aTimeUTC= as.character(as_datetime(aTimeUTC,tz="America/Los_Angeles")) ) %>%
                 select(`Departing City` = cityFrom, `Departing Airport Code` = flyFrom, `Departure Time` = dTimeUTC , `Arrival City`= cityTo,
-                       `Arrival Airport Code`= flyTo, `Arrival Time` = aTimeUTC ,`Carrier` = operating_carrier, `Return Flight?`= return)
+                       `Arrival Airport Code`= flyTo, `Arrival Time` = aTimeUTC , `Return Flight?`= return)
         }
         # Change the column names
         output$result <- renderDataTable({
