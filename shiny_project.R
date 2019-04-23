@@ -9,6 +9,7 @@ library(promises)
 library(stringr)
 library(lubridate)
 library(shinycssloaders)
+library(shinycustomloader)
 library(geosphere)
 library(DT)
 library(data.table)
@@ -56,7 +57,8 @@ ui <- shinyUI(
                mainPanel(
                    shinyjs::hidden(
                        div(id = "leaflet_output",
-                           shinycssloaders::withSpinner(leafletOutput("mymap"))
+                           # shinycssloaders::withSpinner(leafletOutput("mymap"))
+                           withLoader(leafletOutput("mymap"),type="html",loader="pacman")
                        )),
                    # shinycssloaders::withSpinner(leafletOutput("mymap")),
                    dataTableOutput("result")
