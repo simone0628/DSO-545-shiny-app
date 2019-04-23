@@ -45,10 +45,10 @@ ui <- shinyUI(
         tags$head(
             tags$style(HTML("@import url('https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css');"))
         ),
-        titlePanel("See All Flights"),
+        titlePanel("Wanna Get Away?"),
         sidebarLayout(
             sidebarPanel(
-                helpText("Blah blah blah I need to reformat this"),
+                helpText("Finals stressing you out? Want to get away from all of your responsibilities? We can help!"),
                 selectInput("airport_start", "Origin Airport", selected = 'LAX (Los Angeles International)',
                             choices = sort(unique(airport_info$idname))),
                 selectInput("selectinputid", "Select Holiday:",choices = NULL),
@@ -61,14 +61,18 @@ ui <- shinyUI(
                     shinycssloaders::withSpinner(leafletOutput("mymap"))
                     )),
                     # shinycssloaders::withSpinner(leafletOutput("mymap")),
-                    dataTableOutput("result")
-                    ### ADD YOUR OUTPUT HERE ###
+                    dataTableOutput("result"),
+                    plotOutput("secondplot")
                 )
         )
     )
 )
 
 server <- function(input, output,session) {
+    
+    output$secondplot = renderPlot({
+        # Put plot code here so that it returns the ggplot2 object
+    })
     
     shinyjs::onclick("goButton1",
                      shinyjs::show(id = "leaflet_output",anim = T))
@@ -348,8 +352,7 @@ console.log(childColumns)
                               ")      ) 
         }, server = FALSE)
         })
-    hide("loading_page")
-    show("main_content")  
+
     
 }  
 
