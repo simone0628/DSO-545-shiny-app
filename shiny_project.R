@@ -33,6 +33,8 @@ if(DEBUG){
 # airport_endpoint = fromJSON("https://prod.greatescape.co/api/flights/airports")
 airport_info = read_csv("~/Dropbox/Spring 2019/DSO 545/shiny_app/airport_info.csv")
 
+# Get airline company data
+airline_carriers = read_csv("~/Dropbox/Spring 2019/DSO 545/shiny_app/airline_carriers.csv")
 
 
 # We should probably make this layout look better
@@ -208,11 +210,20 @@ airport_start,start_date,start_date,return_date,return_date)))
     observeEvent(input$mymap_marker_click, { 
         p <- input$mymap_marker_click$id
         flight_info = result_val()
-        flight_data = flight_info %>% filter(flyTo == p) %>% 
-            select(flyTo,dTime,aTime,airlines,fly_duration,price,route) %>% distinct(flyTo,dTime,aTime,.keep_all = T)
+        flight_data = flight_info %>% filter(flyTo == p) %>% select(flyTo,dTime,aTime,airlines,fly_duration,price,route) %>% 
+            distinct(flyTo,dTime,aTime,.keep_all = T) %>%
+            mutate(dTime = as.character(as_datetime(dTime,tz="America/Los_Angeles")), aTime = as.character(as_datetime(aTime,tz="America/Los_Angeles")))%>%
+            select(Destination=flyTo,`Departure Time`= dTime,`Arrival Time` = aTime, `Airlines` = airlines, `Flight Duration` = fly_duration, `Price`=price, route = route)
+        #     
+        
         for(i in 1:nrow(flight_data)){
-            flight_data$route[[i]] = flight_data$route[[i]] %>% select(cityFrom,flyFrom,cityTo,flyTo,aTimeUTC,dTimeUTC,operating_carrier,return)
+            flight_data$route[[i]] = flight_data$route[[i]] %>% select(cityFrom,flyFrom,cityTo,flyTo,aTimeUTC,dTimeUTC,operating_carrier,return) %>%
+                mutate(dTimeUTC = as.character(as_datetime(dTimeUTC,tz="America/Los_Angeles")), aTimeUTC= as.character(as_datetime(aTimeUTC,tz="America/Los_Angeles")) ) %>%
+                select(`Departing City` = cityFrom, `Departing Airport Code` = flyFrom, `Departure Time` = dTimeUTC , `Arrival City`= cityTo,
+                       `Arrival Airport Code`= flyTo, `Arrival Time` = aTimeUTC ,`Carrier` = operating_carrier, `Return Flight?`= return)
         }
+        # flight_data$id = 1:nrow(flight_data)
+        # flight_data = flight_data %>% select(id, `Departing City`, `Departure Time`, `Arrival Time`, `Airlines`, route)
         # Change the column names
         output$result <- renderDataTable({
             DT::datatable(
@@ -246,7 +257,7 @@ airport_start,start_date,start_date,return_date,return_date)))
                               // Generate the child table layout
                               var generateChildTableLayout = function(parentRowData) {
                               if (parentRowData != null){
-                              var result = ('<table id=\"' + parentRowData[2] + '\"><thead><tr>')
+                              var result = ('<table id=\"' + parentRowData[0] + '\"><thead><tr>')
                               for (var col in parentRowData[parentRowData.length - 1][0]){
                               result += '<th>' + col + '</th>'
                               }
@@ -281,7 +292,9 @@ airport_start,start_date,start_date,return_date,return_date)))
                               var generateChildTableContent = function(parentRowData) {
                               var childRowData = converter(parentRowData[parentRowData.length - 1]);
                               var childColumns = cols(parentRowData[parentRowData.length - 1]);
-                              var subtable = $('table#' + parentRowData[2]).DataTable({
+                                console.log(childRowData)
+console.log(childColumns)
+                              var subtable = $('table#' + parentRowData[0]).DataTable({
                               'data': childRowData,
                               'columns': childColumns,
                               'autoWidth': false,
