@@ -1,0 +1,31 @@
+---
+title: "DSO 545 Presentation"
+author: "Bradley Rava, Simeng Shao, Patrick Vossler <br /> <br /> USC Marshall DSO"
+date: "4/24/2019"
+output:
+  xaringan::moon_reader:
+    chakra: libs/remark-latest.min.js
+    css: xaringan-themer.css
+    lib_dir: libs
+    nature:
+      beforeInit: macros.js
+      countIncrementalSlides: no
+      highlightLines: yes
+      highlightStyle: github
+  html_document:
+    df_print: paged
+header-includes:
+- \usepackage{mathtools}
+- \usepackage{xcolor}
+- \usepackage{graphicx}
+- \usepackage{bm}
+- \newcommand{\indep}{\rotatebox[origin=c]{90}{$\models$}}
+---
+
+# Motivation
+<video>
+<source src="dso545_presentation.mp4" type="video/mp4">
+</video>
+
+
+---
