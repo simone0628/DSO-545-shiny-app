@@ -3,20 +3,24 @@ library(readr)
 library(maps)
 library(ggmap)
 library(grid)
+library(animation)
+library(dplyr)
 
 # Normal days
-data_2006 =read_csv("~/Dropbox/Spring 2019/DSO 545/2006_data.csv")
+data_2006 =read_csv("~/Dropbox/Spring 2019/DSO 545/shiny_app/2006_data.csv")
 jan13 = data_2006 %>% filter(Month == 1 & DayofMonth== 13)
 jan19 = data_2006 %>% filter(Month == 1 & DayofMonth== 19)
 
 #March 7 2008 North American Blizzard of 2008. Tornadoes and blizzards
-data_2008 = read_csv("~/Dropbox/Spring 2019/DSO 545/2008_data.csv")
+data_2008 = read_csv("~/Dropbox/Spring 2019/DSO 545/shiny_app/2008_data.csv")
 march7 = data_2008 %>% filter(Month == 3 & DayofMonth== 7)
 
 # Sept 11 2001
-data_2001 = read_csv("~/Dropbox/Spring 2019/DSO 545/2001_data.csv")
+data_2001 = read_csv("~/Dropbox/Spring 2019/DSO 545/shiny_app/2001_data.csv")
 sept11 = data_2001 %>% filter(Month == 9 & DayofMonth== 11)
 
+dec24 = readRDS("~/Downloads/Dec24_2018.rds")
+dec24 = dec24 %>% filter(Dest != "ECP" & Origin != "ECP")
 
 airports <- read.csv("http://www.public.iastate.edu/~hofmann/looking-at-data/data/airports.csv")
 airports = airports %>% distinct(iata,.keep_all = T)
@@ -101,6 +105,7 @@ flightTrack <- function(fromXY, toXY, ratio, seed) {
 airport.location.mod <- function(iata) {
     iata = iata %>% select(Origin,Dest)
     results = lapply(1:nrow(iata), function(i){
+        print(i)
         origin_lat_lon = data.frame(airports[which(airports$iata == iata[i,]$Origin),7:6])
         colnames(origin_lat_lon) = c("origin_lon", "origin_lat")
         des_lat_lon = data.frame(airports[which(airports$iata == iata[i,]$Dest),7:6])
@@ -241,30 +246,33 @@ plotMap <- function(res, time) {
     print(plotFace(time), vp = vp2)
 }
 
-plotMap(inFlight(jan13, 500, 2), 500) # map for 6:30 pm on January 19
+# plotMap(inFlight(jan13, 500, 2), 500) # map for 6:30 pm on January 19
 
 
-mins <- seq(0,58, by=2)
-hour <- seq(600, 1200, by=100)
+mins <- seq(0,58, by=20)
+hour <- seq(700, 1700, by=100)
 seqs <- rep(hour, each=length(mins))
 seqs <- seqs + mins
 
-# working directory
-getwd()
 
-system("mkdir movie-stills")
-setwd("movie-stills")
 
-library(animation)
 
-saveGIF({for (i in head(seqs, 60)) {
-    
-    plotMap(inFlight(jan13, i, 2),i)
-    # fname <- paste("jan13-2006-",i,".png",sep="")
-    # png(fname, width=640, height=480)
-    # 
-    # #	ggsave(file=fname, width=6, height=4)
-    # dev.off()
-}})
+# Set ani.option
+ani.options(interval = 0.5,ani.width = 960,ani.height=960)
+
+data_list = list(jan19,march7,sept11,dec24)
+file_name = c("jan19", "march7","sept11","dec24")
+
+for(j in 1:length(data_list)){
+    print(file_name[j])
+    saveGIF({for (i in head(seqs, 180)) {
+        print(i)
+        
+        suppressWarnings(plotMap(inFlight(data_list[[j]], i, 5),i))
+
+    }},movie.name = paste0("~/Dropbox/Spring 2019/DSO 545/",file_name[j],".gif"))
+}
+
+
 
 
