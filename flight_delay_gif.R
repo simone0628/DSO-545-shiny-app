@@ -20,7 +20,9 @@ data_2001 = read_csv("~/Dropbox/Spring 2019/DSO 545/shiny_app/2001_data.csv")
 sept11 = data_2001 %>% filter(Month == 9 & DayofMonth== 11)
 
 dec24 = readRDS("~/Downloads/Dec24_2018.rds")
-dec24 = dec24 %>% filter(Dest != "ECP" & Origin != "ECP")
+# dec24 = dec24 %>% filter(Dest != "ECP" & Origin != "ECP")
+dec24 = dec24 %>% filter(Origin %in%unique(airports$iata), Dest %in%unique(airports$iata))
+
 
 airports <- read.csv("http://www.public.iastate.edu/~hofmann/looking-at-data/data/airports.csv")
 airports = airports %>% distinct(iata,.keep_all = T)
@@ -270,7 +272,7 @@ for(j in 1:length(data_list)){
         
         suppressWarnings(plotMap(inFlight(data_list[[j]], i, 5),i))
 
-    }},movie.name = paste0("~/Dropbox/Spring 2019/DSO 545/",file_name[j],".gif"))
+    }},movie.name = paste0("~/Dropbox/Spring 2019/DSO 545/shiny_app/",file_name[j],".gif"))
 }
 
 

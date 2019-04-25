@@ -16,6 +16,7 @@ library(data.table)
 library(shinyjs)
 library(ggplot2)
 library(future)
+library(slickR)
 
 DEBUG = F
 ## For testing to quickly get data
@@ -78,7 +79,7 @@ ui <- shinyUI(
                    tabPanel("Second tab name",
                             sidebarPanel(),
                             mainPanel(
-                                plotOutput("secondplot")
+                                slickROutput("slickr", width="960px")
                             )
                    )
 )
@@ -126,10 +127,16 @@ server <- function(input, output,session) {
     }
     days_2019 = format(getDays(2019), "%d/%m/%Y")
     
-    
-    output$secondplot = renderPlot({
-        # Put plot code here so that it returns the ggplot2 object
+    output$slickr <- renderSlickR({
+        imgs <- list.files("~/Dropbox/Spring 2019/DSO 545/shiny_app/", pattern=".gif", full.names = TRUE)
+        slickR(imgs)
     })
+        
+    
+    
+    # output$secondplot = renderPlot({
+    #     # Put plot code here so that it returns the ggplot2 object
+    # })
     
     shinyjs::onclick("goButton1",{
                      shinyjs::show(id = "leaflet_output",anim = T)})
