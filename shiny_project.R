@@ -17,6 +17,7 @@ library(shinyjs)
 library(ggplot2)
 library(future)
 library(slickR)
+library(tidyselect)
 
 DEBUG = F
 ## For testing to quickly get data
@@ -439,7 +440,7 @@ console.log(childColumns)
             days_2019[which(days_2019 == start_date)+3],days_2019[max(which(days_2019 == return_date)-3, which(days_2019 == format(Sys.Date(), "%d/%m/%Y")))],
             days_2019[which(days_2019 == return_date)+3],p)))
         flight_flexible = flight_info_flexible$data
-        # flight_info_flexible = flight_info_flexible %>% select(-one_of(c("baglimit","bags_price","duration","conversion","countryTo", "countryFrom")))
+        flight_info_flexible = flight_info_flexible %>% select(-one_of(c("baglimit","bags_price","duration","conversion","countryTo", "countryFrom")))
         
         flight_flexible = flight_flexible %>% mutate(date = format(as_datetime(dTime,tz="America/Los_Angeles"), "%Y-%m-%d")) %>% group_by(date) %>% summarize(price = mean(price))
         
