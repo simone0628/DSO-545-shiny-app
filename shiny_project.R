@@ -77,9 +77,11 @@ ui <- shinyUI(
                )
                    ),
                    tabPanel("Second tab name",
-                            sidebarPanel(),
                             mainPanel(
-                                slickROutput("slickr", width="960px")
+                                column(8, align="center",
+                                       slickROutput("slickr", width="960px",height = 960)
+                                )
+                                
                             )
                    )
 )

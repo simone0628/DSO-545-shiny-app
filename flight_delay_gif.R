@@ -60,10 +60,7 @@ map.opts <- theme(panel.grid.minor=element_blank(),
 
 
 
-(usamap <- ggplot2::qplot(x, y, data = states, geom = "polygon", fill = I("grey85"), colour = I("white"), xlim = c(-130,-60), ylim = c(20,50)) +
-    map.opts + 
-    geom_point(aes(x = longitude, y = latitude), size = 0.7, colour = "grey65", data = subset(airports, Volume > 100)) + geom_line(aes(x = x, y = y, group = id), data = slider, colour = "grey55", size = 0.25) + geom_line(aes(x = x, y = y, group = id), data = ticks, colour = "grey55", size = 0.25) + annotate("text", x = ticks$x[1], y = 22.8, label = c("Jan 18 2006"), colour = "grey40", size = 3, hjust = 0.25, vjust = 0) + annotate("text", x = ticks$x[nrow(ticks)-2], y = 22.8, label = c("Jan 19 2006"), colour = "grey40", size = 3, hjust = 0.5, vjust = 0) + annotate("text", x = ticks$x[idx], y = ticks$y[idx]-1, label = c("3am EST", "6am", "9am", "12pm", "3pm", "6pm", "9pm", "12am EST", "3am"), colour = "grey40", size = 3, hjust = 0.5, vjust = 0) 
-)
+
 
 
 # get all flights in the air and all flights that have been cancelled
@@ -264,9 +261,23 @@ ani.options(interval = 0.5,ani.width = 960,ani.height=960)
 
 data_list = list(jan19,march7,sept11,dec24)
 file_name = c("jan19", "march7","sept11","dec24")
+dates = list(c("Jan 19 2006","Jan 20 2006"), c("March 7 2008","March 8 2008"),c("September 11, 2001", "September 12, 2001"),c("December 24, 2018", "December 25, 2018"))
 
 for(j in 1:length(data_list)){
     print(file_name[j])
+    start_date = dates[[j]][1]
+    end_date = dates[[j]][2]
+    # Redraw the us map each time and update the labels
+    usamap <- ggplot2::qplot(x, y, data = states, geom = "polygon", fill = I("grey85"), colour = I("white"), xlim = c(-130,-60), ylim = c(20,50)) +
+            map.opts + 
+            geom_point(aes(x = longitude, y = latitude), size = 0.7, colour = "grey65", data = subset(airports, Volume > 100)) +
+        geom_line(aes(x = x, y = y, group = id), data = slider, colour = "grey55", size = 0.25) + 
+        geom_line(aes(x = x, y = y, group = id), data = ticks, colour = "grey55", size = 0.25) + 
+        annotate("text", x = ticks$x[1], y = 22.8, label = c(start_date), colour = "grey40", size = 3, hjust = 0.25, vjust = 0) + 
+        annotate("text", x = ticks$x[nrow(ticks)-2], y = 22.8, label = c(end_date), colour = "grey40", size = 3, hjust = 0.5, vjust = 0) + 
+        annotate("text", x = ticks$x[idx], y = ticks$y[idx]-1, label = c("3am EST", "6am", "9am", "12pm", "3pm", "6pm", "9pm", "12am EST", "3am"), colour = "grey40", size = 3, hjust = 0.5, vjust = 0) 
+    
+    
     saveGIF({for (i in head(seqs, 180)) {
         print(i)
         
